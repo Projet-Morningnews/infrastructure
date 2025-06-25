@@ -1,0 +1,144 @@
+- name: update apt
+  become: yes
+  apt:
+    update_cache: yes
+
+- name: Install dependencies
+  become: yes
+  apt:
+    name:
+      - apt-transport-https
+      - ca-certificates
+      - curl
+    state: present
+
+- name: Install  Docker keyrings
+  shell: sudo install -m 0755 -d /etc/apt/keyrings
+
+- name: Add Docker repository
+  shell: sudo curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc
+
+- name: Edit Docker keyrings
+  shell: sudo chmod a+r /etc/apt/keyrings/docker.asc
+
+- name: Edit aptsources
+  shell: echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+- name: update apt
+  become: yes
+  apt:
+    update_cache: yes
+
+- name: Install dependencies
+  become: yes
+  apt:
+    name:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-buildx-plugin
+      - docker-compose-plugin
+    state: present
+
+
+- name: Start and enable Docker service
+  systemd:
+    name: docker
+    enabled: yes
+    state: started
+
+- name: Create Folder /srv/prometheus if not exist
+  become: yes
+  file:
+    path: /srv/prometheus
+    mode: 0755
+    state: directory
+
+- name: Create Folder /srv/grafana if not exist
+  become: yes
+  file:
+    path: /srv/grafana
+    mode: 0755
+    state: directory
+
+- name: Create Folder /srv/alertmanager if not exist
+  become: yes
+  file:
+    path: /srv/alertmanager
+    mode: 0755
+    state: directory
+
+- name: Create prometheus configuration file
+  become: yes
+  copy:
+    dest: /srv/prometheus/prometheus.yml
+    src: prometheus_main.yml
+    mode: 0644
+
+- name: Create prometheus alert configuration file
+  become: yes
+  copy:
+    dest: /srv/prometheus/prometheus_alerts_rules.yml
+    src: prometheus_alerts_rules.yml
+    mode: 0644
+
+- name: Create grafana configuration files
+  become: yes
+  copy:
+    dest: /srv/
+    src: grafana
+    mode: 0644
+
+- name: Create alertmanager configuration file
+  become: yes
+  template:
+    dest: /srv/alertmanager/alertmanager.yml
+    src: alertmanager/alertmanager.j2
+    mode: 0644
+
+- name: Create Prometheus container
+  become: yes
+  community.docker.docker_container:
+    name: prometheus
+    restart_policy: always
+    image: prom/prometheus:latest
+    volumes:
+      - /srv/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - /srv/prometheus/prometheus_alerts_rules.yml:/etc/prometheus/prometheus_alerts_rules.yml
+      - prometheus_main_data:/prometheus
+    command: >
+      --config.file=/etc/prometheus/prometheus.yml
+      --storage.tsdb.path=/prometheus
+      --web.console.libraries=/etc/prometheus/console_libraries
+      --web.console.templates=/etc/prometheus/consoles
+      --web.enable-lifecycle
+    published_ports: "9090:9090"
+
+- name: Create Grafana container
+  become: yes
+  community.docker.docker_container:
+    name: grafana
+    restart_policy: always
+    image: grafana/grafana:main
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - /srv/grafana/provisioning:/etc/grafana/provisioning
+      - /srv/grafana/dashboards:/var/lib/grafana/dashboards
+    env:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: "Admin"
+    published_ports: "3000:3000"
+
+- name: Create Alertmanager container
+  become: yes
+  community.docker.docker_container:
+    name: alertmanager
+    restart_policy: always
+    image: prom/alertmanager:latest
+    volumes:
+      - alertmanager-data:/data
+      - /srv/alertmanager:/config
+    command: >
+      --config.file=/config/alertmanager.yml 
+      --log.level=debug
+    published_ports: "9093:9093"

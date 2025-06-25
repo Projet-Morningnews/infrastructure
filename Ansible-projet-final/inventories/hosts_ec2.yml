@@ -1,0 +1,15 @@
+all:
+  hosts:
+    backend:
+      ansible_host: 15.188.79.160
+      ansible_user: admin
+      ansible_ssh_private_key_file: /home/engineer/.ssh/deploy_key
+      certbot_domain: AhmedBackendProjetFinal.chickenkiller.com
+      certbot_email: kpescaglini@gmail.com
+
+    frontend:
+      ansible_host: 15.236.55.233
+      ansible_user: admin
+      ansible_ssh_private_key_file: /home/engineer/.ssh/deploy_key
+      certbot_domain: AhmedFrotendProjetFinal.chickenkiller.com
+      certbot_email: kpescaglini@gmail.com

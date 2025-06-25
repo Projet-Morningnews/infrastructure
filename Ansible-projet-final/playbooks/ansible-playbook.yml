@@ -1,0 +1,7 @@
+- name: Setups de docker rsync et certbot
+  hosts: all
+  become: yes
+  roles:
+    - docker
+    - rsync
+    - certbot

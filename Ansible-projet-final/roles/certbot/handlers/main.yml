@@ -1,0 +1,6 @@
+---
+- name: Restart Web Server
+  systemd:
+    name: nginx
+    state: reloaded
+  become: yes

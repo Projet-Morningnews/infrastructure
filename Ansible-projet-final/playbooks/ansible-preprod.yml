@@ -1,0 +1,6 @@
+- name: Setups de docker rsync
+  hosts: all
+  become: yes
+  roles:
+    - docker
+    - rsync

@@ -1,0 +1,51 @@
+---
+- name: Installer Certbot et ses dépendances
+  apt:
+    name: 
+    - certbot
+    - python3
+    - python3-certbot-nginx
+    - nginx
+    state: present
+    update_cache: yes
+
+- name: Start and enable Nginx service
+  systemd:
+    name: nginx
+    enabled: yes
+    state: started
+
+- name: Generate crt certbot for frontend
+  become: true
+  shell: "certbot --nginx -d AhmedFrotendProjetFinal.chickenkiller.com --non-interactive --agree-tos --email kpescaglini@gmail.com"
+  when: "inventory_hostname =='frontend'"
+
+- name: Generate crt certbot for backend
+  become: true
+  shell: "certbot --nginx -d AhmedBackendProjetFinal.chickenkiller.com --non-interactive --agree-tos --email kpescaglini@gmail.com"
+  when: "inventory_hostname =='backend'"
+
+- name: Template Nginx configuration file for monitoring front
+  template:
+    src: ../templates/certbotconffront.conf.j2
+    dest: /etc/nginx/sites-enabled/default
+  become: yes
+  notify: Restart Web Server
+  when: "inventory_hostname =='frontend'"
+
+
+- name: Template Nginx configuration file for monitoring backend
+  template:
+    src: ../templates/certbotconfback.conf.j2
+    dest: /etc/nginx/sites-enabled/default
+  become: yes
+  notify: Restart Web Server
+  when: "inventory_hostname =='backend'"
+
+
+- name: Ajouter un cron job pour le renouvellement automatique
+  cron:
+    name: "Renouvellement automatique de Certbot"
+    job: "certbot renew --quiet && systemctl reload nginx"
+    minute: "0"
+    hour: "3"

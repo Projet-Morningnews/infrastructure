@@ -1,0 +1,21 @@
+- name: Setup de docker
+  hosts: moni
+  become: yes
+  roles:
+    - docker
+
+- name: Install Observability stack (targets)
+  hosts: target
+  tags:
+    - monitoring
+    - target
+  roles:
+    - ../roles/target
+
+- name: Install Observability stack (observer)
+  hosts: moni
+  tags:
+    - monitoring
+    - moni
+  roles:
+    - ../roles/moni

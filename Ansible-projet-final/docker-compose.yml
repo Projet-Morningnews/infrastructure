@@ -1,0 +1,7 @@
+services:
+  app:
+    image: phuulia/morningnews-frontend-lacapsule:latest
+    container_name: frontend_morningnews
+    restart: always
+    ports:
+      - "3000:3000"
