@@ -1,0 +1,79 @@
+- name: update apt
+  apt:
+    update_cache: yes
+
+- name: Install dependencies
+  apt:
+    name:
+      - qemu-kvm
+      - libvirt-dev
+      - bridge-utils
+      - libvirt-daemon-system
+      - libvirt-daemon
+      - virtinst
+      - libosinfo-bin
+      - libguestfs-tools
+      - virt-top
+    state: present
+
+- name: Install  Docker keyrings
+  shell: sudo modprobe vhost_net
+
+- name: Install  Docker keyrings
+  shell: echo "vhost_net" | sudo tee -a /etc/modules
+
+- name: Install  Docker keyrings
+  shell: sudo usermod -aG libvirt $(whoami)
+
+- name: Install  Docker keyrings
+  shell: sudo usermod -aG libvirt-qemu $(whoami)
+
+- name: Install  Docker keyrings
+  shell: sudo usermod -aG libvirt-qemu $(whoami)
+
+- name: Ensure libvirtd service is enabled and started
+  ansible.builtin.service:
+    name: libvirtd
+    enabled: yes
+    state: started
+
+
+- name: Install Minishift
+  become: yes
+  vars:
+    ver: "1.34.3"
+    minishift_archive: "minishift-{{ ver }}-linux-amd64.tgz"
+    minishift_url: "https://github.com/minishift/minishift/releases/download/v{{ ver }}/{{ minishift_archive }}"
+    minishift_dir: "minishift-{{ ver }}-linux-amd64"
+
+  tasks:
+
+    - name: Download Minishift archive
+      ansible.builtin.get_url:
+        url: "{{ minishift_url }}"
+        dest: "/tmp/{{ minishift_archive }}"
+        mode: '0644'
+
+    - name: Extract Minishift archive
+      ansible.builtin.unarchive:
+        src: "/tmp/{{ minishift_archive }}"
+        dest: /tmp/
+        remote_src: yes
+
+    - name: Move Minishift binary to /usr/local/bin
+      ansible.builtin.copy:
+        src: "/tmp/{{ minishift_dir }}/minishift"
+        dest: "/usr/local/bin/minishift"
+        mode: '0755'
+
+- name: Set Minishift VM driver to kvm
+  ansible.builtin.command: minishift config set vm-driver kvm
+  become: yes
+  environment:
+    PATH: /usr/local/bin:{{ ansible_env.PATH }}
+
+- name: Start Minishift
+  ansible.builtin.command: minishift start
+  become: yes
+  environment:
+    PATH: /usr/local/bin:{{ ansible_env.PATH }}

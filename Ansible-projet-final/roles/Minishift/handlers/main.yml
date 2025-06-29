@@ -1,4 +1,4 @@
 - name: Restart Docker
   systemd:
-    name: docker
+    name: minishift
     state: restarted
