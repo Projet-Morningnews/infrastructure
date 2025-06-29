@@ -1,6 +1,7 @@
 - name: update apt
   apt:
     update_cache: yes
+  become: yes
 
 - name: Install dependencies
   apt:
@@ -15,30 +16,33 @@
       - libguestfs-tools
       - virt-top
     state: present
+    become: yes
 
-- name: Install  Docker keyrings
-  shell: sudo modprobe vhost_net
+- name: Load vhost_net module
+  shell: modprobe vhost_net
+  become: yes
 
-- name: Install  Docker keyrings
+- name: vhost_net persistant mode
   shell: echo "vhost_net" | sudo tee -a /etc/modules
+  become: yes
 
-- name: Install  Docker keyrings
-  shell: sudo usermod -aG libvirt $(whoami)
+- name: Add my user to the libvirt group
+  shell: usermod -aG libvirt $(whoami)
+  become: yes
 
-- name: Install  Docker keyrings
-  shell: sudo usermod -aG libvirt-qemu $(whoami)
-
-- name: Install  Docker keyrings
-  shell: sudo usermod -aG libvirt-qemu $(whoami)
+- name: Add my user to the libvirt-qemu group
+  shell: usermod -aG libvirt-qemu $(whoami)
+  become: yes
 
 - name: Ensure libvirtd service is enabled and started
+  become: yes
   ansible.builtin.service:
     name: libvirtd
     enabled: yes
     state: started
 
 
-- name: Install Minishift
+- name: Install minishift
   become: yes
   vars:
     ver: "1.34.3"
@@ -48,31 +52,31 @@
 
   tasks:
 
-    - name: Download Minishift archive
+    - name: Download minishift archive
       ansible.builtin.get_url:
         url: "{{ minishift_url }}"
         dest: "/tmp/{{ minishift_archive }}"
         mode: '0644'
 
-    - name: Extract Minishift archive
+    - name: Extract minishift archive
       ansible.builtin.unarchive:
         src: "/tmp/{{ minishift_archive }}"
         dest: /tmp/
         remote_src: yes
 
-    - name: Move Minishift binary to /usr/local/bin
+    - name: Move minishift binary to /usr/local/bin
       ansible.builtin.copy:
         src: "/tmp/{{ minishift_dir }}/minishift"
         dest: "/usr/local/bin/minishift"
         mode: '0755'
 
-- name: Set Minishift VM driver to kvm
+- name: Set minishift VM driver to kvm
   ansible.builtin.command: minishift config set vm-driver kvm
   become: yes
   environment:
     PATH: /usr/local/bin:{{ ansible_env.PATH }}
 
-- name: Start Minishift
+- name: Start minishift
   ansible.builtin.command: minishift start
   become: yes
   environment:
