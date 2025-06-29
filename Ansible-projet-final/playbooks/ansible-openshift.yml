@@ -1,0 +1,7 @@
+- name: Install OpenShift Local
+  hosts: all
+  become: yes
+  gather_facts: yes
+
+  roles:
+    - openshift

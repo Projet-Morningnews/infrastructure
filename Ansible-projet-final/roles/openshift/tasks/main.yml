@@ -1,0 +1,44 @@
+---
+- name: Set variables
+  set_fact:
+    crc_version: "2.17.0"
+    crc_url: "https://mirror.openshift.com/pub/openshift-v4/clients/crc/{{ crc_version }}/crc-linux-amd64.tar.xz"
+    crc_bin_path: "/usr/local/bin/crc"
+    pull_secret_path: "{{ ansible_env.HOME }}/pull-secret.json"
+
+- name: Download CRC archive
+  get_url:
+    url: "{{ crc_url }}"
+    dest: "/tmp/crc-linux-amd64.tar.xz"
+    mode: '0755'
+
+- name: Extract CRC binary
+  unarchive:
+    src: "/tmp/crc-linux-amd64.tar.xz"
+    dest: "/tmp"
+    remote_src: yes
+    creates: "/tmp/crc-linux-amd64/crc"
+
+- name: Move CRC binary to /usr/local/bin
+  copy:
+    src: "/tmp/crc-linux-amd64/crc"
+    dest: "{{ crc_bin_path }}"
+    remote_src: yes
+    mode: '0755'
+
+- name: Write pull secret from vault to file
+  copy:
+    content: "{{ pull_secret }}"
+    dest: "{{ pull_secret_path }}"
+    mode: '0600'
+
+- name: Run crc setup
+  command: "{{ crc_bin_path }} setup"
+  environment:
+    HOME: "{{ ansible_env.HOME }}"
+
+- name: Start crc cluster
+  command: >
+    {{ crc_bin_path }} start --pull-secret-file {{ pull_secret_path }} --log-level debug
+  environment:
+    HOME: "{{ ansible_env.HOME }}"
